@@ -17,6 +17,81 @@ void setBit(char *byte,int pos,bool value){
     }
 }
 
+char CPU::get_oper(int addr_mode,u_short *mempos){
+    char oper;
+    u_char LL;
+    u_char HH;
+    u_char LL2;
+    u_char HH2;
+    switch (addr_mode){
+        case ABSOLUTE:
+            LL = (u_char)memory[PC++];
+            HH = (u_char)memory[PC++];
+            *mempos = ((u_short)HH << 8) + (u_short)LL;
+            oper = memory[*mempos];
+            break;
+        case ABSOLUTEX:
+            LL = (u_char)memory[PC++];
+            HH = (u_char)memory[PC++];
+            *mempos = ((u_short)HH << 8) + (u_short)LL + (u_char)X; //with carry
+            oper = memory[*mempos]; 
+            break;
+        case ABSOLUTEY:
+            LL = (u_char)memory[PC++];
+            HH = (u_char)memory[PC++];
+            *mempos = ((u_short)HH << 8) + (u_short)LL + (u_char)Y; //with carry
+            oper = memory[*mempos]; 
+            break;
+        case IMMEDIATE:
+            oper = memory[PC++];
+            break;
+        case INDIRECT:
+            LL = (u_char)memory[PC++];
+            HH = (u_char)memory[PC++];
+            LL2 = memory[((u_short)HH << 8) + (u_short)LL];
+            HH2 = memory[((u_short)HH << 8) + (u_short)(u_char)(LL + (u_char)1)]; //without carry(although its not supposed to happen anyway)
+           *mempos = ((u_short)HH2 << 8) + (u_short)LL2;
+            oper = memory[*mempos];
+            break;
+        case INDIRECTX:
+            LL = (u_char)memory[PC++];
+            LL2 = memory[(u_short)(u_char)(LL + (u_char)X)]; //without carry
+            HH2 = memory[(u_short)(u_char)(LL + (u_char)X + (u_char)1)]; //without carry
+            *mempos = ((u_short)HH2 << 8) + (u_short)LL2;
+            oper = memory[*mempos];
+            break;
+        case INDIRECTY:
+            LL = (u_char)memory[PC++];
+            LL2 = memory[(u_short)LL];
+            HH2 = memory[(u_short)(u_char)(LL + (u_char)1)];
+            *mempos = ((u_short)HH2 << 8) + (u_short)LL2 + (u_char)Y; // with carry
+            oper = memory[*mempos]; 
+            break;
+        case ZEROPAGE:
+            LL = (u_char)memory[PC++];
+            *mempos = (u_short)LL;
+            oper = memory[*mempos];
+            break;
+        case ZEROPAGEX:
+            LL = (u_char)memory[PC++];
+            *mempos = (u_short)(u_char)(LL + (u_char)X);
+            oper = memory[*mempos];
+            break;
+        case ZEROPAGEY:
+            LL = (u_char)memory[PC++];
+            *mempos = (u_short)(u_char)(LL + (u_char)Y);
+            oper = memory[*mempos];
+            break;
+        case RELATIVE:
+            *mempos = PC++;
+            oper = memory[*mempos];
+            break;
+        default:
+            oper = 0;
+            break;
+    }
+    return oper;
+}
 
 
 void CPU::nextIntruction(){
@@ -501,88 +576,130 @@ void CPU::nextIntruction(){
             setBit(&oper,5,getBit(SR,5));
             SR = oper;
             break;
-
+        //ROL Instructions
+        case 0x2A:
+            AC = rolByte(AC); //ACCUMULATOR
+            break;
+        case 0x26:
+            oper = get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = rolByte(oper);
+            break;
+        case 0x36:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = rolByte(oper);
+            break;
+        case 0x2E:
+            oper = get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = rolByte(oper);
+            break;
+        case 0x3E:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            memory[mempos] = rolByte(oper);
+            break;
+        //ROR Instructions
+        case 0x6A:
+            AC = rorByte(AC); //ACCUMULATOR
+            break;
+        case 0x66:
+            oper = get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = rorByte(oper);
+            break;
+        case 0x76:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = rorByte(oper);
+            break;
+        case 0x6E:
+            oper = get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = rorByte(oper);
+            break;
+        case 0x7E:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            memory[mempos] = rorByte(oper);
+            break;
+        //RIT Instruction - Return from interrupt
+        case 0x40:
+            oper = pullStack();
+            setBit(&oper,4,getBit(SR,4));
+            setBit(&oper,5,getBit(SR,5));
+            SR = oper;
+            PC = pullStack(); //PCL
+            PC += pullStack() << 8; //PCH
+            PC++; //next instruction
+            break;
+        //RTS - Return from subroutine
+        case 0x60:
+            PC = pullStack(); //PCL
+            PC += pullStack() << 8; //PCH
+            break;
+        //SBC
+        case 0xE9:
+            oper = get_oper(IMMEDIATE,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xE5:
+            oper = get_oper(ZEROPAGE,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xF5:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xED:
+            oper = get_oper(ABSOLUTE,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xFD:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xF9:
+            oper = get_oper(ABSOLUTEY,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xE1:
+            oper = get_oper(INDIRECTX,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
+        case 0xF1:
+            oper = get_oper(INDIRECTY,&mempos);
+            AC = subBytes(AC,oper,1);
+            break;
         default:
             break;
     }
 
 }
 
-char CPU::get_oper(int addr_mode,u_short *mempos){
-    char oper;
-    u_char LL;
-    u_char HH;
-    u_char LL2;
-    u_char HH2;
-    switch (addr_mode){
-        case ABSOLUTE:
-            LL = (u_char)memory[PC++];
-            HH = (u_char)memory[PC++];
-            *mempos = ((u_short)HH << 8) + (u_short)LL;
-            oper = memory[*mempos];
-            break;
-        case ABSOLUTEX:
-            LL = (u_char)memory[PC++];
-            HH = (u_char)memory[PC++];
-            *mempos = ((u_short)HH << 8) + (u_short)LL + (u_char)X; //with carry
-            oper = memory[*mempos]; 
-            break;
-        case ABSOLUTEY:
-            LL = (u_char)memory[PC++];
-            HH = (u_char)memory[PC++];
-            *mempos = ((u_short)HH << 8) + (u_short)LL + (u_char)Y; //with carry
-            oper = memory[*mempos]; 
-            break;
-        case IMMEDIATE:
-            oper = memory[PC++];
-            break;
-        case INDIRECT:
-            LL = (u_char)memory[PC++];
-            HH = (u_char)memory[PC++];
-            LL2 = memory[((u_short)HH << 8) + (u_short)LL];
-            HH2 = memory[((u_short)HH << 8) + (u_short)(u_char)(LL + (u_char)1)]; //without carry(although its not supposed to happen anyway)
-           *mempos = ((u_short)HH2 << 8) + (u_short)LL2;
-            oper = memory[*mempos];
-            break;
-        case INDIRECTX:
-            LL = (u_char)memory[PC++];
-            LL2 = memory[(u_short)(u_char)(LL + (u_char)X)]; //without carry
-            HH2 = memory[(u_short)(u_char)(LL + (u_char)X + (u_char)1)]; //without carry
-            *mempos = ((u_short)HH2 << 8) + (u_short)LL2;
-            oper = memory[*mempos];
-            break;
-        case INDIRECTY:
-            LL = (u_char)memory[PC++];
-            LL2 = memory[(u_short)LL];
-            HH2 = memory[(u_short)(u_char)(LL + (u_char)1)];
-            *mempos = ((u_short)HH2 << 8) + (u_short)LL2 + (u_char)Y; // with carry
-            oper = memory[*mempos]; 
-            break;
-        case ZEROPAGE:
-            LL = (u_char)memory[PC++];
-            *mempos = (u_short)LL;
-            oper = memory[*mempos];
-            break;
-        case ZEROPAGEX:
-            LL = (u_char)memory[PC++];
-            *mempos = (u_short)(u_char)(LL + (u_char)X);
-            oper = memory[*mempos];
-            break;
-        case ZEROPAGEY:
-            LL = (u_char)memory[PC++];
-            *mempos = (u_short)(u_char)(LL + (u_char)Y);
-            oper = memory[*mempos];
-            break;
-        case RELATIVE:
-            *mempos = PC++;
-            oper = memory[*mempos];
-            break;
-        default:
-            oper = 0;
-            break;
-    }
-    return oper;
+char CPU::rorByte(char a){
+    char resChar = (a >> 1) + (a << 7);
+
+    //check for carry
+    setBit(&SR,0,getBit(a,0) == 1 ? 1 : 0);
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //check for negative
+    setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
 }
+
+char CPU::rolByte(char a){
+    char resChar = (a << 1) + (a >> 7);
+
+    //check for carry
+    setBit(&SR,0,getBit(a,7) == 1 ? 1 : 0);
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //check for negative
+    setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
+}
+
 
 /*
 Add bytes with carry indicating overflow
@@ -612,6 +729,19 @@ char CPU::addBytes(char a,char b,bool withCarry){
     //check for negative
     setBit(&SR,7,resChar < 0 ? 1 : 0);
 
+    return resChar;
+}
+
+/*
+sub bytes with borrow
+*/
+char CPU::subBytes(char a,char b,bool withBorrow){
+    char resChar;
+    if(withBorrow){
+        resChar = addBytes(a,~b,1);
+    }else{
+        resChar = addBytes(a,-b,0);
+    }
     return resChar;
 }
 

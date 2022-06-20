@@ -35,9 +35,12 @@ class CPU{
     void nextIntruction();
     char get_oper(int addr_mode,u_short *mempos);
     char addBytes(char a,char b,bool withCarry);
+    char subBytes(char a,char b,bool withBorrow);
     char andBytes(char a,char b);
     char aslByte(char a);
     char lsrByte(char a);
+    char rorByte(char a);
+    char rolByte(char a);
     void cmpBytes(char a,char b);
     char decByte(char a);
     char incByte(char a);
