@@ -32,7 +32,11 @@ class CPU{
 
     CPU();
     ~CPU(){};
-    char get_oper(int addr_mode);
-    char addBytes(char a,char b,bool withCarry);
     void nextIntruction();
+    char get_oper(int addr_mode,u_short *mempos);
+    char addBytes(char a,char b,bool withCarry);
+    char andBytes(char a,char b);
+    char aslByte(char a);
+    void cmpBytes(char a,char b);
+    char decByte(char a);
 };
