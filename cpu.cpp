@@ -123,21 +123,52 @@ void CPU::nextIntruction(){
         case 0x90: //Branch on Carry Clear
             oper = get_oper(RELATIVE,&mempos);
             if(getBit(SR,0) == 0){
-                PC += oper;
+                PC += oper - 2; //-2?
             }
             break;
         case 0xB0: //Branch on Carry Set
             oper = get_oper(RELATIVE,&mempos);
             if(getBit(SR,0) == 1){
-                PC += oper;
+                PC += oper - 2; //-2?
             }
             break;
         case 0xF0: //Branch on Result Zero
             oper = get_oper(RELATIVE,&mempos);
             if(getBit(SR,1) == 1){
-                PC += oper;
+                PC += oper - 2; //-2?
             }
             break;
+        case 0x30: //Branch on Result Minus
+            oper = get_oper(RELATIVE,&mempos);
+            if(getBit(SR,7) == 1){
+                PC += oper - 2; //-2?
+            }
+            break;
+        case 0xD0: //Branch on Result not Zero
+            oper = get_oper(RELATIVE,&mempos);
+            if(getBit(SR,1) ==  0){
+                PC += oper - 2; //-2?
+            }
+            break;
+        case 0x10: //Branch on Result positive
+            oper = get_oper(RELATIVE,&mempos);
+            if(getBit(SR,7) == 0){
+                PC += oper - 2; //-2?
+            }
+            break;
+        case 0x50: //Branch on Overflow Clear
+            oper = get_oper(RELATIVE,&mempos);
+            if(getBit(SR,6) == 0){
+                PC += oper - 2; //-2?
+            }
+            break;
+        case 0x70: //Branch on Overflow Set
+            oper = get_oper(RELATIVE,&mempos);
+            if(getBit(SR,6) == 1){
+                PC += oper - 2; //-2?
+            }
+            break;
+        //Test Bits
         case 0x24: //Test Bits in Memory with Accumulator
             oper = get_oper(ZEROPAGE,&mempos);
             andBytes(AC,oper);
@@ -149,36 +180,6 @@ void CPU::nextIntruction(){
             andBytes(AC,oper);
             setBit(&SR,7,getBit(oper,7));
             setBit(&SR,6,getBit(oper,6));
-            break;
-        case 0x30: //Branch on Result Minus
-            oper = get_oper(RELATIVE,&mempos);
-            if(getBit(SR,7) == 1){
-                PC += oper;
-            }
-            break;
-        case 0xD0: //Branch on Result not Zero
-            oper = get_oper(RELATIVE,&mempos);
-            if(getBit(SR,1) ==  0){
-                PC += oper;
-            }
-            break;
-        case 0x10: //Branch on Result positive
-            oper = get_oper(RELATIVE,&mempos);
-            if(getBit(SR,7) == 0){
-                PC += oper;
-            }
-            break;
-        case 0x50: //Branch on Overflow Clear
-            oper = get_oper(RELATIVE,&mempos);
-            if(getBit(SR,6) == 0){
-                PC += oper;
-            }
-            break;
-        case 0x70: //Branch on Overflow Set
-            oper = get_oper(RELATIVE,&mempos);
-            if(getBit(SR,6) == 1){
-                PC += oper;
-            }
             break;
         //CLEAR FLAGS
         case 0x18: //Clear Carry Flag 
@@ -269,6 +270,236 @@ void CPU::nextIntruction(){
         case 0xDE:
             oper = get_oper(ABSOLUTEX,&mempos);
             memory[mempos] = decByte(oper);
+            break;
+        case 0xCA:
+            X = decByte(X);
+            break;
+        case 0x88:
+            Y = decByte(Y);
+            break;
+        //XOR Instruction
+        case 0x49:
+            oper = get_oper(IMMEDIATE,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x45:
+            oper = get_oper(ZEROPAGE,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x55:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x4D:
+            oper = get_oper(ABSOLUTE,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x5D:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x59:
+            oper = get_oper(ABSOLUTEY,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x41:
+            oper = get_oper(INDIRECTX,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        case 0x51:
+            oper = get_oper(INDIRECTY,&mempos);
+            AC = xorBytes(AC,oper);
+            break;
+        //INC Instruction
+        case 0xE6:
+            oper = get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = incByte(oper);
+            break;
+        case 0xF6:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = incByte(oper);
+            break;
+        case 0xEE:
+            oper = get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = incByte(oper);
+            break;
+        case 0xFE:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            memory[mempos] = incByte(oper);
+            break;
+        case 0xE8:
+            X = incByte(X);
+            break;
+        case 0xC8:
+            Y = incByte(Y);
+            break;
+        //JMP Intruction
+        case 0x4C:
+            oper = get_oper(ABSOLUTE,&mempos);
+            PC = mempos;
+            break;
+        case 0x6C:
+            oper = get_oper(INDIRECT,&mempos);
+            PC = mempos;
+            break;
+        case 0x20:
+            pushStack((u_char)((PC + 1) >> 8)); //PCH
+            pushStack((u_char)((PC + 1) & 0xFF)); //PCL
+            oper = get_oper(INDIRECT,&mempos);
+            PC = mempos;
+            break;
+        //LDA Instruction
+        case 0xA9:
+            oper = get_oper(IMMEDIATE,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xA5:
+            oper = get_oper(ZEROPAGE,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xB5:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xAD:
+            oper = get_oper(ABSOLUTE,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xBD:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xB9:
+            oper = get_oper(ABSOLUTEY,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xA1:
+            oper = get_oper(INDIRECTX,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        case 0xB1:
+            oper = get_oper(INDIRECTY,&mempos);
+            AC = orBytes(0,oper);
+            break;
+        //LDX Instruction
+        case 0xA2:
+            oper = get_oper(IMMEDIATE,&mempos);
+            X = orBytes(0,oper);
+            break;
+        case 0xA6:
+            oper = get_oper(ZEROPAGE,&mempos);
+            X = orBytes(0,oper);
+            break;
+        case 0xB6:
+            oper = get_oper(ZEROPAGEY,&mempos);
+            X = orBytes(0,oper);
+            break;
+        case 0xAE:
+            oper = get_oper(ABSOLUTE,&mempos);
+            X = orBytes(0,oper);
+            break;
+        case 0xBE:
+            oper = get_oper(ABSOLUTEY,&mempos);
+            X = orBytes(0,oper);
+            break;
+        //LDY Instruction
+        case 0xA0:
+            oper = get_oper(IMMEDIATE,&mempos);
+            Y = orBytes(0,oper);
+            break;
+        case 0xA4:
+            oper = get_oper(ZEROPAGE,&mempos);
+            Y = orBytes(0,oper);
+            break;
+        case 0xB4:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            Y = orBytes(0,oper);
+            break;
+        case 0xAC:
+            oper = get_oper(ABSOLUTE,&mempos);
+            Y = orBytes(0,oper);
+            break;
+        case 0xBC:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            Y = orBytes(0,oper);
+            break;
+        //LSR Instruction
+        case 0x4A:
+            AC = lsrByte(AC); //ACCUMULATOR
+            break;
+        case 0x46:
+            oper = get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = lsrByte(oper);
+            break;
+        case 0x56:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = lsrByte(oper);
+            break;
+        case 0x4E:
+            oper = get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = lsrByte(oper);
+            break;
+        case 0x5E:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            memory[mempos] = lsrByte(oper);
+            break;
+        //NOP Instruction
+        case 0xEA:
+            break;
+        //OR Instruction
+        case 0x09:
+            oper = get_oper(IMMEDIATE,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x05:
+            oper = get_oper(ZEROPAGE,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x15:
+            oper = get_oper(ZEROPAGEX,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x0D:
+            oper = get_oper(ABSOLUTE,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x1D:
+            oper = get_oper(ABSOLUTEX,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x19:
+            oper = get_oper(ABSOLUTEY,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x01:
+            oper = get_oper(INDIRECTX,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        case 0x11:
+            oper = get_oper(INDIRECTY,&mempos);
+            AC = orBytes(AC,oper);
+            break;
+        //Push Instruction
+        case 0x48: //Push Accumulator
+            pushStack(AC);
+            break;
+        case 0x08: //Push Status
+            oper = SR;
+            setBit(&oper,4,1);
+            setBit(&oper,5,1);
+            pushStack(SR);
+            break;
+        //pull Instructions
+        case 0x68: //pull Accumulator
+            AC = pullStack();
+            setBit(&SR,1,AC == 0 ? 1 : 0); //check for 0      
+            setBit(&SR,7,AC < 0 ? 1 : 0); //check for negative
+            break;
+        case 0x28: //pull SR
+            oper = pullStack();
+            setBit(&oper,4,getBit(SR,4));
+            setBit(&oper,5,getBit(SR,5));
+            SR = oper;
             break;
 
         default:
@@ -401,13 +632,28 @@ char CPU::aslByte(char a){
     char resChar = a << 1;
 
     //check for carry
-    setBit(&SR,1,getBit(a,7) == 1 ? 1 : 0);
+    setBit(&SR,0,getBit(a,7) == 1 ? 1 : 0);
 
     //check for 0
     setBit(&SR,1,resChar == 0 ? 1 : 0);
 
     //check for negative
     setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
+}
+
+char CPU::lsrByte(char a){
+    char resChar = a >> 1;
+
+    //check for carry
+    setBit(&SR,0,getBit(a,0) == 1 ? 1 : 0);
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //mark not negative
+    setBit(&SR,7,0);
 
     return resChar;
 }
@@ -440,4 +686,53 @@ char CPU::decByte(char a){
     setBit(&SR,7,resChar < 0 ? 1 : 0);
 
     return resChar;
+}
+
+char CPU::incByte(char a){
+    //real calculation
+    char resChar = a + (char)1;
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //check for negative
+    setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
+}
+
+char CPU::xorBytes(char a,char b){
+    //real calculation
+    char resChar = a ^ b;
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //check for negative
+    setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
+}
+
+char CPU::orBytes(char a,char b){
+    //real calculation
+    char resChar = a | b;
+
+    //check for 0
+    setBit(&SR,1,resChar == 0 ? 1 : 0);
+
+    //check for negative
+    setBit(&SR,7,resChar < 0 ? 1 : 0);
+
+    return resChar;
+}
+
+void CPU::pushStack(char byte){
+    //TODO: VERIFY IF STACK OVERFLOW
+    memory[SP--] = byte; 
+}
+
+char CPU::pullStack(){
+    //TODO: VERIFY IF STACK EMPTY
+    return memory[SP++];
 }

@@ -37,6 +37,13 @@ class CPU{
     char addBytes(char a,char b,bool withCarry);
     char andBytes(char a,char b);
     char aslByte(char a);
+    char lsrByte(char a);
     void cmpBytes(char a,char b);
     char decByte(char a);
+    char incByte(char a);
+    char xorBytes(char a,char b);
+    char orBytes(char a,char b);
+
+    void pushStack(char byte);
+    char pullStack();
 };
