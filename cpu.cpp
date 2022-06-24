@@ -17,6 +17,19 @@ void setBit(char *byte,int pos,bool value){
     }
 }
 
+CPU::CPU(char* memory){
+    
+    AC=0;
+    X=0;
+    Y=0;
+    SP=0; //?
+    SR=0;
+    PC=0; //PROBABLY SHOULD START 0Xfffc
+    this->memory=memory;
+}
+
+CPU::~CPU(){}
+
 char CPU::get_oper(int addr_mode,u_short *mempos){
     char oper;
     u_char LL;
@@ -663,6 +676,107 @@ void CPU::nextIntruction(){
         case 0xF1:
             oper = get_oper(INDIRECTY,&mempos);
             AC = subBytes(AC,oper,1);
+            break;
+        //SEC
+        case 0x38:
+            setBit(&SR,0,1);
+            break;
+        //SED
+        case 0xF8:
+            setBit(&SR,3,1);
+            break;
+        //SEI
+        case 0x78:
+            setBit(&SR,2,1);
+            break;
+        //STA
+        case 0x85:
+            get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x95:
+            get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x8D:
+            get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x9D:
+            get_oper(ABSOLUTEX,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x99:
+            get_oper(ABSOLUTEY,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x81:
+            get_oper(INDIRECTX,&mempos);
+            memory[mempos] = AC;
+            break;
+        case 0x91:
+            get_oper(INDIRECTY,&mempos);
+            memory[mempos] = AC;
+            break;
+        //STX
+        case 0x86:
+            get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = X;
+            break;
+        case 0x96:
+            get_oper(ZEROPAGEY,&mempos);
+            memory[mempos] = X;
+            break;
+        case 0x8E:
+            get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = X;
+            break;
+        //STY
+        case 0x84:
+            get_oper(ZEROPAGE,&mempos);
+            memory[mempos] = Y;
+            break;
+        case 0x94:
+            get_oper(ZEROPAGEX,&mempos);
+            memory[mempos] = Y;
+            break;
+        case 0x8C:
+            get_oper(ABSOLUTE,&mempos);
+            memory[mempos] = Y;
+            break;
+        //TAX
+        case 0xAA:
+            X = AC;
+            setBit(&SR,1,X == 0 ? 1 : 0); //check for 0
+            setBit(&SR,7,X < 0 ? 1 : 0); //check for negative
+            break;
+        //TAY
+        case 0xAB:
+            Y = AC;
+            setBit(&SR,1,Y == 0 ? 1 : 0); //check for 0
+            setBit(&SR,7,Y < 0 ? 1 : 0); //check for negative
+            break;
+        //TSX
+        case 0xBA:
+            X = SP;
+            setBit(&SR,1,X == 0 ? 1 : 0); //check for 0
+            setBit(&SR,7,X < 0 ? 1 : 0); //check for negative
+            break;
+        //TXA
+        case 0x8A:
+            AC = X;
+            setBit(&SR,1,AC == 0 ? 1 : 0); //check for 0
+            setBit(&SR,7,AC < 0 ? 1 : 0); //check for negative
+            break;
+        //TXS
+        case 0x9A:
+            SP = X;
+            break;
+        //TYA
+        case 0x98:
+            AC = Y;
+            setBit(&SR,1,AC == 0 ? 1 : 0); //check for 0
+            setBit(&SR,7,AC < 0 ? 1 : 0); //check for negative
             break;
         default:
             break;

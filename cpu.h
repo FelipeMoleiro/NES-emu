@@ -19,8 +19,8 @@ enum ADDR_MODE{
 
 //CPU
 class CPU{
-    const int masterClock = 21.477272;//MHz
-
+    //const int masterClock = 21.477272;//MHz
+public:
     u_short PC; //Program Counter - 16 bits
     char AC; //Accumulator - 8 bits
     char X; //X register - 8 bits
@@ -30,8 +30,8 @@ class CPU{
 
     char *memory;
 
-    CPU();
-    ~CPU(){};
+    CPU(char* memory);
+    ~CPU();
     void nextIntruction();
     char get_oper(int addr_mode,u_short *mempos);
     char addBytes(char a,char b,bool withCarry);
